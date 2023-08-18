@@ -1,0 +1,53 @@
+{
+  "name": "one-key-test",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "egg": {
+    "declarations": true
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "egg": "^3",
+    "egg-cors": "^2.2.3",
+    "egg-redis": "^2.5.0",
+    "egg-scripts": "^2",
+    "egg-sequelize": "^6.0.0",
+    "image-size": "^1.0.2",
+    "mysql2": "^3.6.0",
+    "request": "^2.88.2",
+    "sharp": "^0.32.5"
+  },
+  "devDependencies": {
+    "egg-bin": "^5",
+    "egg-ci": "^2",
+    "egg-mock": "^5",
+    "eslint": "^8",
+    "eslint-config-egg": "^12",
+    "sequelize-cli": "^6.6.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "start": "egg-scripts start --daemon --title=egg-server-one-key-test",
+    "stop": "egg-scripts stop --title=egg-server-one-key-test",
+    "dev": "egg-bin dev",
+    "debug": "egg-bin debug",
+    "test": "npm run test-local",
+    "test-local": "egg-bin test",
+    "cov": "egg-bin cov",
+    "lint": "eslint . --fix",
+    "ci": "npm run lint && npm run cov"
+  },
+  "ci": {
+    "version": "16, 18",
+    "type": "github"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "author": "",
+  "license": "MIT"
+}
