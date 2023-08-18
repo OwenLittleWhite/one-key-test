@@ -40,6 +40,7 @@ module.exports = appInfo => {
     database: 'one_key_test',
     host: '127.0.0.1',
     dialect: 'mysql',
+    logging: true,
   };
   config.redis = {
     client: {

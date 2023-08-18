@@ -31,7 +31,7 @@ module.exports = {
           comment: '名称',
         },
         token_id: {
-          type: STRING(42),
+          type: STRING(256),
           allowNull: false,
           comment: 'token_id',
         },
@@ -46,14 +46,14 @@ module.exports = {
           type: STRING(30),
         },
         image_url: {
-          type: STRING(256),
+          type: STRING(1024),
         },
         thumbnail_url: {
-          type: STRING(256),
+          type: STRING(1024),
           comment: '转存缩略图',
         },
         original_url: {
-          type: STRING(256),
+          type: STRING(1024),
           comment: '转存原始图',
         },
         own_timestamp: {

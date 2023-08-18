@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, assert, mock } = require('egg-mock/bootstrap');
+const { app } = require('egg-mock/bootstrap');
 
 describe('test/service/nft.test.js', () => {
   const address = '0xca1257ade6f4fa6c6834fdc42e030be6c0f5a813';

@@ -20,23 +20,24 @@ async function processTasksWithLimit(tasks, limit) {
     const batch = tasks.slice(i, i + limit);
     const batchResults = await Promise.all(batch);
     results.push(...batchResults);
+    console.log('+++++', i);
   }
   return results;
 }
 const chainDominMap = {
   ethereum: 'restapi',
-  bnb: 'bnbapi',
-  polygon: 'polygonapi',
-  arbitrum: 'arbitrumapi',
-  op_mainnet: 'optimismapi',
-  zkSync_era: 'zksyncapi',
-  linea: 'lineaapi',
-  avalanche_c: 'avaxapi',
-  cronos: 'cronosapi',
-  platon: 'platonapi',
-  moonbeam: 'moonbeamapi',
-  fantom: 'fantomapi',
-  gnosis: 'gnosisapi',
+  // bnb: 'bnbapi',
+  // polygon: 'polygonapi',
+  // arbitrum: 'arbitrumapi',
+  // op_mainnet: 'optimismapi',
+  // zkSync_era: 'zksyncapi',
+  // linea: 'lineaapi',
+  // avalanche_c: 'avaxapi',
+  // cronos: 'cronosapi',
+  // platon: 'platonapi',
+  // moonbeam: 'moonbeamapi',
+  // fantom: 'fantomapi',
+  // gnosis: 'gnosisapi',
 };
 class NftService extends Service {
   async getFromNftScan(account_address, chain, erc_type) {
@@ -131,58 +132,67 @@ class NftService extends Service {
     const thumbnailUrl = `localhost:${this.app.config.cluster.listen.port}/public/thumbnail/${md5(this.getKeyByNft(nft))}${suffix}`;
     const originalPath = path.join(this.app.config.baseDir, '/public/original', `${md5(this.getKeyByNft(nft))}${suffix}`);
     const thumbnailPath = path.join(this.app.config.baseDir, '/public/thumbnail', `${md5(this.getKeyByNft(nft))}${suffix}`);
-    const promise = new Promise((resolve, reject) => {
-      let remoteImageStream;
-      try {
-        remoteImageStream = request(imgUrl, error => {
-          if (error) {
-            reject(error);
-          }
 
-        });
-        const originalImageWriteStream = fs.createWriteStream(originalPath);
-
-        const thumbnailImageWriteStream = fs.createWriteStream(thumbnailPath);
-
-        const thumbnailTransformStream = sharp()
-          .resize(100, 100);
-        // 根据输出路径的文件扩展名来选择输出格式
-        if (thumbnailPath.endsWith('.png')) {
-          thumbnailTransformStream.png();
-        } else if (thumbnailPath.endsWith('.gif')) {
-          thumbnailTransformStream.gif();
-        } else {
-          thumbnailTransformStream.jpeg();
-        }
-
-        remoteImageStream.pipe(thumbnailTransformStream).pipe(thumbnailImageWriteStream);
-
-        remoteImageStream.pipe(originalImageWriteStream);
-
-        thumbnailTransformStream.on('error', error => {
-          reject(error);
-        });
-
-        thumbnailImageWriteStream.on('finish', () => {
-          resolve();
-        });
-
-        thumbnailImageWriteStream.on('error', error => {
-          reject(error);
-        });
-
-        originalImageWriteStream.on('finish', () => {
-        });
-
-        originalImageWriteStream.on('error', error => {
-          reject(error);
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
     try {
-      await promise;
+      await new Promise((resolve, reject) => {
+        let remoteImageStream;
+        try {
+          remoteImageStream = request(imgUrl, error => {
+            if (error) {
+              reject(error);
+            }
+
+          });
+          const originalImageWriteStream = fs.createWriteStream(originalPath);
+
+          const thumbnailImageWriteStream = fs.createWriteStream(thumbnailPath);
+
+          const thumbnailTransformStream = sharp()
+            .resize(100, 100);
+          // 根据输出路径的文件扩展名来选择输出格式
+          if (thumbnailPath.endsWith('.png')) {
+            thumbnailTransformStream.png();
+          } else if (thumbnailPath.endsWith('.gif')) {
+            thumbnailTransformStream.gif();
+          } else {
+            thumbnailTransformStream.jpeg();
+          }
+          let thumbFinish = false;
+          let originalFinish = false;
+          remoteImageStream.pipe(thumbnailTransformStream).pipe(thumbnailImageWriteStream);
+
+          remoteImageStream.pipe(originalImageWriteStream);
+
+          thumbnailTransformStream.on('error', error => {
+            reject(error);
+          });
+          thumbnailImageWriteStream.on('finish', () => {
+            thumbFinish = true;
+            if (thumbFinish && originalFinish) {
+              remoteImageStream.end();
+              resolve();
+            }
+          });
+
+          thumbnailImageWriteStream.on('error', error => {
+            reject(error);
+          });
+
+          originalImageWriteStream.on('finish', () => {
+            originalFinish = true;
+            if (thumbFinish && originalFinish) {
+              remoteImageStream.end();
+              resolve();
+            }
+          });
+
+          originalImageWriteStream.on('error', error => {
+            reject(error);
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
       nft.thumbnail_url = thumbnailUrl;
       nft.original_url = originalUrl;
     } catch (error) {
@@ -193,7 +203,7 @@ class NftService extends Service {
   }
 
   async getMergedDataFromRemote(account_address) {
-    const [first, second] = await Promise.all([this.getFromBlockIn(account_address), this.getAllFromNftScan(account_address)]);
+    const [ first, second ] = await Promise.all([ this.getFromBlockIn(account_address), this.getAllFromNftScan(account_address) ]);
     const secondMap = new Map();
     second.forEach(i => {
       secondMap.set(this.getKeyByNft(i), i);
@@ -248,9 +258,8 @@ class NftService extends Service {
     // 先获取锁
     const lockKey = `updateNfts:lock:${account_address}`;
     const lockRes = await this.app.redis.set(lockKey, '1', 'EX', 120, 'NX');
-    this.logger.info(lockRes, '++++');
-    console.log(lockRes, '------');
     if (lockRes !== 'OK') {
+      console.log('locked, processing...');
       return await this.getLastUpdatedAt(account_address);
     }
     let now = new Date();
@@ -258,7 +267,7 @@ class NftService extends Service {
       const nfts = await this.getMergedDataFromRemote(account_address);
       await this.processAllImageToNTFs(account_address, nfts);
       await this.ctx.model.AccountNft.bulkCreate(nfts, {
-        updateOnDuplicate: ['updated_at', 'deleted_at', 'own_timestamp'],
+        updateOnDuplicate: [ 'updated_at', 'deleted_at', 'own_timestamp' ],
       });
       await this.ctx.model.AccountNft.update({
         deleted_at: now,
@@ -272,6 +281,7 @@ class NftService extends Service {
       });
     } catch (error) {
       this.ctx.logger.error(error);
+      return await this.getLastUpdatedAt(account_address);
     } finally {
       await this.app.redis.del(this.getQueryKey(account_address), lockKey);
       now = new Date();
@@ -303,11 +313,27 @@ class NftService extends Service {
       res = await this.ctx.model.AccountNft.findAndCountAll({
         where: {
           account_address,
-          deleted_at: { [this.app.Sequelize.Op.not]: null },
+          deleted_at: { [this.app.Sequelize.Op.is]: null },
         },
         limit: page_count,
         offset: page_count * (page - 1),
       });
+      await this.app.redis.hset(this.getQueryKey(account_address), fieldKey, JSON.stringify(res));
+    }
+    return res;
+  }
+
+  async getTotalValue(account_address) {
+    const fieldKey = 'totalValue';
+    let res = await this.app.redis.hget(this.getQueryKey(account_address), fieldKey);
+    if (res) {
+      res = JSON.parse(res);
+    } else {
+      const result = await this.ctx.model.query('SELECT sum(last_price*amount) as totalValue FROM one_key_test.account_nfts where last_price is not null and account_address=?', {
+        type: this.app.Sequelize.QueryTypes.SELECT,
+        replacements: [ account_address ],
+      });
+      res = result[0];
       await this.app.redis.hset(this.getQueryKey(account_address), fieldKey, JSON.stringify(res));
     }
     return res;

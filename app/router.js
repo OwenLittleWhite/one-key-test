@@ -9,5 +9,5 @@ module.exports = app => {
   router.get('/:account_address/nft_last_updated_at', controller.nft.getLastUpdatedAt);
   router.put('/:account_address/nfts', controller.nft.update);
   router.get('/:account_address/nfts', controller.nft.query);
-  // router.get('/:account_address/nfts_total_value', controller.nft.getTotalValue);
+  router.get('/:account_address/nfts_total_value', controller.nft.getTotalValue);
 };

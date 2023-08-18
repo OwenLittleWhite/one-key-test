@@ -15,8 +15,13 @@ class NftController extends Controller {
 
   async query() {
     const { account_address } = this.ctx.params;
-    const { page, page_count } = this.ctx.query;
-    this.ctx.body = await this.ctx.service.nft.query(account_address, page, page_count);
+    const { page = 1, page_count = 10 } = this.ctx.query;
+    this.ctx.body = await this.ctx.service.nft.query(account_address, +page, +page_count);
+  }
+
+  async getTotalValue() {
+    const { account_address } = this.ctx.params;
+    this.ctx.body = await this.ctx.service.nft.getTotalValue(account_address);
   }
 }
 
